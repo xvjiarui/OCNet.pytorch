@@ -55,6 +55,7 @@ class ResNet(nn.Module):
         self.bn3 = BatchNorm2d(128)
         self.relu3 = nn.ReLU(inplace=False)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+
         self.relu = nn.ReLU(inplace=False)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1, ceil_mode=True) # change
         self.layer1 = self._make_layer(block, 64, layers[0])
@@ -63,7 +64,7 @@ class ResNet(nn.Module):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=1, dilation=4, multi_grid=(1,1,1)) # we do not apply multi-grid method here
 
         # extra added layers
-        self.context = nn.Sequential(
+        self.head = nn.Sequential(
             nn.Conv2d(2048, 512, kernel_size=3, stride=1, padding=1),
             InPlaceABNSync(512),
             BaseOC_Module(in_channels=512, out_channels=512, key_channels=256, value_channels=256, 
@@ -75,7 +76,7 @@ class ResNet(nn.Module):
             InPlaceABNSync(512),
             nn.Dropout2d(0.05),
             nn.Conv2d(512, num_classes, kernel_size=1, stride=1, padding=0, bias=True)
-            )
+        )
 
 
     def _make_layer(self, block, planes, blocks, stride=1, dilation=1, multi_grid=1):
@@ -88,10 +89,11 @@ class ResNet(nn.Module):
 
         layers = []
         generate_multi_grid = lambda index, grids: grids[index%len(grids)] if isinstance(grids, tuple) else 1
-        layers.append(block(self.inplanes, planes, stride,dilation=dilation, downsample=downsample, multi_grid=generate_multi_grid(0, multi_grid)))
+        layers.append(block(self.inplanes, planes, stride, dilation=dilation, downsample=downsample, multi_grid=generate_multi_grid(0, multi_grid)))
         self.inplanes = planes * block.expansion
         for i in range(1, blocks):
             layers.append(block(self.inplanes, planes, dilation=dilation, multi_grid=generate_multi_grid(i, multi_grid)))
+
         return nn.Sequential(*layers)
 
     def forward(self, x):
@@ -104,7 +106,7 @@ class ResNet(nn.Module):
         x = self.layer3(x)
         x_dsn = self.dsn(x)
         x = self.layer4(x)
-        x = self.context(x)
+        x = self.head(x)
         x = self.cls(x)
         return [x_dsn, x]
 

@@ -1,6 +1,5 @@
 ##+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-## Created by: speedinghzl02
-## updated by: RainbowSecret
+## Created by: RainbowSecret
 ## Microsoft Research
 ## yuyua@microsoft.com
 ## Copyright (c) 2018
@@ -16,6 +15,7 @@ import torch.utils.model_zoo as model_zoo
 import torch
 import os
 import sys
+import pdb
 import numpy as np
 from torch.autograd import Variable
 import functools
@@ -25,6 +25,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(BASE_DIR)
 sys.path.append(os.path.join(BASE_DIR, '../utils'))
 from resnet_block import conv3x3, Bottleneck
+sys.path.append(os.path.join(BASE_DIR, '../oc_module'))
+from nonlocal_block import NonLocal2d
 
 torch_ver = torch.__version__[:3]
 
@@ -63,10 +65,11 @@ class ResNet(nn.Module):
 
         # extra added layers
         self.head = nn.Sequential(
-                nn.Conv2d(2048, 512, kernel_size=3, stride=1, padding=1),
-                InPlaceABNSync(512),
-                nn.Dropout2d(0.05)
-                )
+            nn.Conv2d(2048, 512, kernel_size=3, stride=1, padding=1),
+            InPlaceABNSync(512),
+            NonLocal2d(inplanes=512, ratio=256, downsample=False),
+            nn.Dropout2d(0.05)
+            )
         self.cls = nn.Conv2d(512, num_classes, kernel_size=1, stride=1, padding=0, bias=True)
         self.dsn = nn.Sequential(
             nn.Conv2d(1024, 512, kernel_size=3, stride=1, padding=1),
@@ -108,6 +111,6 @@ class ResNet(nn.Module):
         return [x_dsn, x]
 
 
-def get_resnet101_baseline_dsn(num_classes=19):
+def get_resnet101_base_nl_dsn(num_classes=21):
     model = ResNet(Bottleneck,[3, 4, 23, 3], num_classes)
     return model
