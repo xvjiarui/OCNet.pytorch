@@ -1,6 +1,14 @@
 import torch
 import torch.nn.functional as F
-from libs import InPlaceABN, InPlaceABNSync
+if torch_ver == '0.4':
+    sys.path.append(os.path.join(BASE_DIR, '../inplace_abn'))
+    from bn import InPlaceABNSync
+    BatchNorm2d = functools.partial(InPlaceABNSync, activation='none')
+
+elif torch_ver == '0.3':
+    sys.path.append(os.path.join(BASE_DIR, '../inplace_abn_03'))
+    from modules import InPlaceABNSync
+    BatchNorm2d = functools.partial(InPlaceABNSync, activation='none')
 from torch import nn
 from torch.nn import init
 import math
