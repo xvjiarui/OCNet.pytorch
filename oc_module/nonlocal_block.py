@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+torch_ver = torch.__version__[:3]
 if torch_ver == '0.4':
     sys.path.append(os.path.join(BASE_DIR, '../inplace_abn'))
     from bn import InPlaceABNSync
